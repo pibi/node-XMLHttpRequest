@@ -11,13 +11,17 @@
  * @license MIT
  */
 
-exports.XMLHttpRequest = function() {
+exports.XMLHttpRequest = function (options) {
+
+options=options||{};
+
+return function(){
 	/**
 	 * Private variables
 	 */
 	var self = this;
 	var http = require('http');
-
+	
 	// Holds http.js objects
 	var client;
 	var request;
@@ -28,7 +32,7 @@ exports.XMLHttpRequest = function() {
 	
 	// Set some default headers
 	var defaultHeaders = {
-		"User-Agent": "node.js",
+		"User-Agent": options.useragent || "node.js",
 		"Accept": "*/*",
 	};
 	
@@ -42,19 +46,19 @@ exports.XMLHttpRequest = function() {
 	this.HEADERS_RECEIVED = 2;
 	this.LOADING = 3;
 	this.DONE = 4;
-
+	
 	/**
 	 * Public vars
 	 */
 	// Current state
 	this.readyState = this.UNSENT;
-
+	
 	// Result & response
 	this.responseText = "";
 	this.responseXML = "";
 	this.status = null;
 	this.statusText = null;
-		
+	
 	/**
 	 * Open the connection. Currently supports local server requests.
 	 *
@@ -64,7 +68,7 @@ exports.XMLHttpRequest = function() {
 	 * @param string user Username for basic authentication (optional)
 	 * @param string password Password for basic authentication (optional)
 	 */
-	this.open = function(method, url, async, user, password) {
+	this.open = function(method, url, async, user, password){
 		settings = {
 			"method": method,
 			"url": url,
@@ -74,7 +78,7 @@ exports.XMLHttpRequest = function() {
 		};
 		
 		this.abort();
-
+		
 		setState(this.OPENED);
 	};
 	
@@ -84,7 +88,7 @@ exports.XMLHttpRequest = function() {
 	 * @param string header Header name
 	 * @param string value Header value
 	 */
-	this.setRequestHeader = function(header, value) {
+	this.setRequestHeader = function(header, value){
 		headers[header] = value;
 	};
 	
@@ -94,7 +98,7 @@ exports.XMLHttpRequest = function() {
 	 * @param string header Name of header to get.
 	 * @return string Text of the header or null if it doesn't exist.
 	 */
-	this.getResponseHeader = function(header) {
+	this.getResponseHeader = function(header){
 		if (this.readyState > this.OPENED && response.headers[header]) {
 			return header + ": " + response.headers[header];
 		}
@@ -105,9 +109,9 @@ exports.XMLHttpRequest = function() {
 	/**
 	 * Gets all the response headers.
 	 *
-	 * @return string 
+	 * @return string
 	 */
-	this.getAllResponseHeaders = function() {
+	this.getAllResponseHeaders = function(){
 		if (this.readyState < this.HEADERS_RECEIVED) {
 			throw "INVALID_STATE_ERR: Headers have not been received.";
 		}
@@ -118,41 +122,40 @@ exports.XMLHttpRequest = function() {
 		}
 		return result.substr(0, result.length - 2);
 	};
-
+	
 	/**
 	 * Sends the request to the server.
 	 *
 	 * @param string data Optional data to send as request body.
 	 */
-	this.send = function(data) {
+	this.send = function(data){
 		if (this.readyState != this.OPENED) {
 			throw "INVALID_STATE_ERR: connection must be opened before send() is called";
 		}
 		
 		/**
-		setState(this.OPENED);
-
+		 setState(this.OPENED);
 		 * Figure out if a host and/or port were specified.
 		 * Regex borrowed from parseUri and modified. Needs additional optimization.
 		 * @see http://blog.stevenlevithan.com/archives/parseuri
 		 */
-		var loc = /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?([^?#]*)/.exec(settings.url);
+		var loc = /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?([^?#]*)(.*)$/.exec(settings.url);
 		
 		// Determine the server
 		switch (loc[1]) {
 			case 'http':
 				var host = loc[6];
 				break;
-			
+				
 			case undefined:
 			case '':
 				var host = "localhost";
 				break;
-			
+				
 			case 'https':
 				throw "SSL is not implemented.";
 				break;
-			
+				
 			default:
 				throw "Protocol not supported.";
 		}
@@ -169,83 +172,86 @@ exports.XMLHttpRequest = function() {
 		
 		client = http.createClient(port, host);
 		
-		client.addListener('error', function (error) {  //Error checking
-			self.status=503;
-			self.statusText=error;
-			self.responseText=error.stack;
+		client.addListener('error', function(error){ //Error checking
+			self.status = 503;
+			self.statusText = error;
+			self.responseText = error.stack;
 			setState(self.DONE);
 			//throw error;
 		})
-
+		
 		// Set content length header
 		if (settings.method == "GET" || settings.method == "HEAD") {
 			data = null;
-		} else if (data) {
-			headers["Content-Length"] = data.length;
-			
-			if (!headers["Content-Type"]) {
-				headers["Content-Type"] = "text/plain;charset=UTF-8";
-			}
+			uri += loc[9] ? loc[9] : "";
 		}
+		else 
+			if (data) {
+				headers["Content-Length"] = data.length;
+				
+				if (!headers["Content-Type"]) {
+					headers["Content-Type"] = "text/plain;charset=UTF-8";
+				}
+			}
 		
 		// Use the correct request method
 		switch (settings.method) {
 			case 'GET':
-				request = client.request("GET",uri, headers);
+				request = client.request("GET", uri, headers);
 				break;
-			
+				
 			case 'POST':
-				request = client.request("POST",uri, headers);
+				request = client.request("POST", uri, headers);
 				break;
-	
+				
 			case 'HEAD':
-				request = client.request("HEAD",uri, headers);
+				request = client.request("HEAD", uri, headers);
 				break;
-	
+				
 			case 'PUT':
-				request = client.request("PUT",uri, headers);
+				request = client.request("PUT", uri, headers);
 				break;
-	
+				
 			case 'DELETE':
-				request = client.request("DELETE",uri, headers);
+				request = client.request("DELETE", uri, headers);
 				break;
-	
+				
 			default:
 				throw "Request method is unsupported.";
 		}
-
+		
 		// Send data to the server
 		if (data) {
 			request.sendBody(data);
 		}
 		
-		request.addListener('response', function(resp) {
+		request.addListener('response', function(resp){
 			response = resp;
 			response.setEncoding("utf8");
 			
 			setState(this.HEADERS_RECEIVED);
-
+			
 			self.status = response.statusCode;
 			
-			response.addListener("data", function(chunk) {
+			response.addListener("data", function(chunk){
 				// Make sure there's some data
 				if (chunk) {
 					self.responseText += chunk;
 				}
 				setState(self.LOADING);
 			});
-	
-			response.addListener("end", function() {
+			
+			response.addListener("end", function(){
 				setState(self.DONE);
 			});
-		});		
+		});
 		request.end();
 	};
-
+	
 	/**
 	 * Aborts a request.
 	 */
-	this.abort = function() {
+	this.abort = function(){
 		headers = defaultHeaders;
 		this.readyState = this.UNSENT;
 		this.responseText = "";
@@ -257,8 +263,9 @@ exports.XMLHttpRequest = function() {
 	 *
 	 * @param int state New state
 	 */
-	var setState = function(state) {
+	var setState = function(state){
 		self.readyState = state;
 		self.onreadystatechange();
 	}
+}
 };
