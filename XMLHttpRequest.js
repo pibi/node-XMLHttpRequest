@@ -77,9 +77,9 @@ return function(){
 			"password": password
 		};
 		
-		this.abort();
+		self.abort();
 		
-		setState(this.OPENED);
+		setState(self.OPENED);
 	};
 	
 	/**
@@ -99,7 +99,7 @@ return function(){
 	 * @return string Text of the header or null if it doesn't exist.
 	 */
 	this.getResponseHeader = function(header){
-		if (this.readyState > this.OPENED && response.headers[header]) {
+		if (self.readyState > self.OPENED && response.headers[header]) {
 			return header + ": " + response.headers[header];
 		}
 		
@@ -112,7 +112,7 @@ return function(){
 	 * @return string
 	 */
 	this.getAllResponseHeaders = function(){
-		if (this.readyState < this.HEADERS_RECEIVED) {
+		if (self.readyState < self.HEADERS_RECEIVED) {
 			throw "INVALID_STATE_ERR: Headers have not been received.";
 		}
 		var result = "";
@@ -129,10 +129,10 @@ return function(){
 	 * @param string data Optional data to send as request body.
 	 */
 	this.send = function(data){
-		if (this.readyState != this.OPENED) {
+		if (self.readyState != self.OPENED) {
 			throw "INVALID_STATE_ERR: connection must be opened before send() is called";
 		}
-		
+			
 		/**
 		 setState(this.OPENED);
 		 * Figure out if a host and/or port were specified.
@@ -229,7 +229,7 @@ return function(){
 			response = resp;
 			response.setEncoding("utf8");
 			
-			setState(this.HEADERS_RECEIVED);
+			setState(self.HEADERS_RECEIVED);
 			
 			self.status = response.statusCode;
 			
@@ -253,9 +253,9 @@ return function(){
 	 */
 	this.abort = function(){
 		headers = defaultHeaders;
-		this.readyState = this.UNSENT;
-		this.responseText = "";
-		this.responseXML = "";
+		self.readyState = self.UNSENT;
+		self.responseText = "";
+		self.responseXML = "";
 	};
 	
 	/**
